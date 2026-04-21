@@ -5,7 +5,8 @@ import StudyScreen from '../../screen/bottom/StudyScreen';
 import OfflineScreen from '../../screen/bottom/OfflineScreen';
 import BatchesScreen from '../../screen/bottom/BatchesScreen';
 import StoreScreen from '../../screen/bottom/StoreScreen';
-import TestLibraryScreen from '../../screen/bottom/TestLibraryScreen';
+import TestScreen from '../../screen/bottom/TestScreen';
+import ProfileScreen from '../../screen/bottom/ProfileScreen';
 import { useTheme } from '../../theme/theme';
 
 const Tab = createBottomTabNavigator();
@@ -15,6 +16,7 @@ const BottomTabNavigator = () => {
 
   return (
     <Tab.Navigator
+      id="bottom-tabs"
       screenOptions={({ route }) => ({
         tabBarIcon: ({ focused, color, size }) => {
           let iconName = '';
@@ -27,8 +29,10 @@ const BottomTabNavigator = () => {
             iconName = focused ? 'account-group' : 'account-group-outline';
           } else if (route.name === 'Store') {
             iconName = focused ? 'cart' : 'cart-outline';
-          } else if (route.name === 'Test Library') {
-            iconName = focused ? 'clipboard-list' : 'clipboard-list-outline';
+          } else if (route.name === 'Test') {
+            iconName = focused ? 'clipboard-text' : 'clipboard-text-outline';
+          } else if (route.name === 'Profile') {
+            iconName = focused ? 'account' : 'account-outline';
           }
 
           return <Icon name={iconName} size={size} color={color} />;
@@ -54,11 +58,12 @@ const BottomTabNavigator = () => {
         },
       })}
     >
-      <Tab.Screen name="Study" component={StudyScreen} />
-      <Tab.Screen name="Offline" component={OfflineScreen} />
-      <Tab.Screen name="Batches" component={BatchesScreen} />
-      <Tab.Screen name="Store" component={StoreScreen} options={{ title: 'PW Store' }} />
-      <Tab.Screen name="Test Library" component={TestLibraryScreen} />
+      <Tab.Screen name="Study" component={StudyScreen} options={{ headerShown: false }} />
+      <Tab.Screen name="Offline" component={OfflineScreen} options={{ headerShown: false }} />
+      <Tab.Screen name="Batches" component={BatchesScreen} options={{ headerShown: false }} />
+      <Tab.Screen name="Store" component={StoreScreen} options={{ title: 'PW Store', headerShown: false }} />
+      <Tab.Screen name="Test" component={TestScreen} options={{ headerShown: false }} />
+      <Tab.Screen name="Profile" component={ProfileScreen} options={{ headerShown: false }} />
     </Tab.Navigator>
   );
 };

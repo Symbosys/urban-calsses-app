@@ -5,16 +5,19 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
   KeyboardAvoidingView,
   Platform,
   Dimensions,
   StatusBar,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useTheme } from '../../theme/theme';
-
-const { width } = Dimensions.get('window');
+import { Alert, ActivityIndicator } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useSendOtp, useVerifyOtp } from '../../api/auth.hooks';
+import { useAuthStore } from '../../store/auth.store';
+import api from '../../api/api.config';
 
 const LoginScreen = ({ navigation }: any) => {
   const theme = useTheme();
@@ -22,16 +25,68 @@ const LoginScreen = ({ navigation }: any) => {
   const [otp, setOtp] = useState('');
   const [isOtpSent, setIsOtpSent] = useState(false);
 
+  const setAuth = useAuthStore((state) => state.setAuth);
+  const sendOtpMutation = useSendOtp();
+  const verifyOtpMutation = useVerifyOtp();
+
   const handleSendOtp = () => {
     if (email.length > 0) {
-      console.log('Sending OTP to:', email);
-      setIsOtpSent(true);
+      sendOtpMutation.mutate(email, {
+        onSuccess: (response) => {
+          setIsOtpSent(true);
+          // For development: showing OTP in alert if it's returned by API
+          if (response.data.otp) {
+            Alert.alert("OTP Sent", `Your OTP is: ${response.data.otp}`);
+          } else {
+            Alert.alert("Success", "OTP sent to your email");
+          }
+        },
+        onError: (error: any) => {
+          const message = error.response?.data?.message || "Failed to send OTP";
+          Alert.alert("Error", message);
+        }
+      });
+    } else {
+      Alert.alert("Error", "Please enter a valid email");
     }
   };
 
   const handleVerifyOtp = () => {
-    console.log('Verifying OTP:', otp, 'for:', email);
-    navigation.replace('Main');
+    if (otp.length === 4) {
+      verifyOtpMutation.mutate({ email, otp }, {
+        onSuccess: async (response) => {
+          try {
+            const user = response.data.user;
+            const token = response.data.token;
+            setAuth(user, token);
+            
+            // Try to fetch existing goals for this user
+            try {
+              const { data: goalsResponse } = await api.get(`/user/goals/${user.id}`, {
+                headers: { Authorization: `Bearer ${token}` }
+              });
+              
+              if (goalsResponse.success && goalsResponse.data.goals && goalsResponse.data.goals.length > 0) {
+                const existingGoal = goalsResponse.data.goals[0].subCategoryId;
+                useAuthStore.getState().setGoal(existingGoal);
+              }
+            } catch (goalError) {
+              console.log("Error fetching user goals on login:", goalError);
+            }
+
+            Alert.alert("Success", "Logged in successfully");
+          } catch (e) {
+            Alert.alert("Error", "Failed to save login session");
+          }
+        },
+        onError: (error: any) => {
+          const message = error.response?.data?.message || "Invalid OTP";
+          Alert.alert("Error", message);
+        }
+      });
+    } else {
+      Alert.alert("Error", "Please enter a 4-digit OTP");
+    }
   };
 
   return (
@@ -79,12 +134,12 @@ const LoginScreen = ({ navigation }: any) => {
               <Icon name="numeric" size={20} color={theme.textSecondary} style={styles.inputIcon} />
               <TextInput
                 style={[styles.input, { color: theme.text }]}
-                placeholder="Enter 6-digit OTP"
+                placeholder="Enter 4-digit OTP"
                 placeholderTextColor={theme.placeholder}
                 value={otp}
                 onChangeText={setOtp}
                 keyboardType="number-pad"
-                maxLength={6}
+                maxLength={4}
               />
             </View>
           )}
@@ -100,10 +155,15 @@ const LoginScreen = ({ navigation }: any) => {
           <TouchableOpacity 
             style={[styles.loginButton, { backgroundColor: theme.primary, shadowColor: theme.primary }]} 
             onPress={isOtpSent ? handleVerifyOtp : handleSendOtp}
+            disabled={sendOtpMutation.isPending || verifyOtpMutation.isPending}
           >
-            <Text style={styles.loginButtonText}>
-              {isOtpSent ? 'Verify & Login' : 'Continue'}
-            </Text>
+            {sendOtpMutation.isPending || verifyOtpMutation.isPending ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.loginButtonText}>
+                {isOtpSent ? 'Verify & Login' : 'Continue'}
+              </Text>
+            )}
           </TouchableOpacity>
 
           <View style={styles.footer}>

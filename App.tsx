@@ -4,6 +4,10 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import StackNavigation from './src/navigation/stack/stack.navigation';
 
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+const queryClient = new QueryClient();
+
 function App(): React.JSX.Element {
   const isDarkMode = useColorScheme() === 'dark';
 
@@ -16,12 +20,14 @@ function App(): React.JSX.Element {
   };
 
   return (
-    <SafeAreaProvider style={[styles.container, { backgroundColor: isDarkMode ? '#121212' : '#ffffff' }]}>
-      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-      <NavigationContainer theme={MyTheme}>
-        <StackNavigation />
-      </NavigationContainer>
-    </SafeAreaProvider>
+    <QueryClientProvider client={queryClient}>
+      <SafeAreaProvider style={[styles.container, { backgroundColor: isDarkMode ? '#121212' : '#ffffff' }]}>
+        <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
+        <NavigationContainer theme={MyTheme}>
+          <StackNavigation />
+        </NavigationContainer>
+      </SafeAreaProvider>
+    </QueryClientProvider>
   );
 }
 
